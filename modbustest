@@ -1,11 +1,10 @@
-from pymodbus3.client.sync import ModbusTcpClient
-from pymodbus3.exceptions import ModbusIOException
+from pymodbus.client import ModbusTcpClient
+from pymodbus.exceptions import ModbusIOException
 import logging
 
 # PLC Configuration
 PLC_IP = '192.168.0.7'  # Replace with your PLC's IP
 PLC_PORT = 502           # Default Modbus TCP port
-
 
 # Correct Register Addresses (Zero-Based)
 INPUT_REGISTER_START = 14   # %IW15 (Modbus Address 3015 - 1)
@@ -19,7 +18,7 @@ WRITE_VALUE = 3           # Value to write
 
 def connect_to_plc(ip, port):
     """ Connect to the PLC using Modbus TCP. """
-    client = ModbusTcpClient(ip, port)
+    client = ModbusTcpClient(host=ip, port=port)
     if client.connect():
         print(f"Connected to PLC at {ip}:{port}")
         return client
@@ -31,7 +30,7 @@ def read_input_registers(client, start, count):
     """ Read input registers (%IW) from the PLC. """
     try:
         response = client.read_input_registers(start, count)
-        if not response or not hasattr(response, 'registers'):
+        if response.isError():
             print(f"Error reading input registers {start + 1} to {start + count}: {response}")
         else:
             print(f"Input Registers {start + 1} to {start + count}: {response.registers}")
@@ -45,7 +44,7 @@ def read_holding_registers(client, start, count):
     """ Read holding registers (%QW) from the PLC. """
     try:
         response = client.read_holding_registers(start, count)
-        if not response or not hasattr(response, 'registers'):
+        if response.isError():
             print(f"Error reading holding registers {start + 1} to {start + count}: {response}")
         else:
             print(f"Holding Registers {start + 1} to {start + count}: {response.registers}")
@@ -59,7 +58,7 @@ def write_holding_register(client, address, value):
     """ Write a value to a specific holding register (%QW). """
     try:
         response = client.write_register(address, value)
-        if not response:
+        if response.isError():
             print(f"Error writing register {address + 1}")
         else:
             print(f"Successfully wrote value {value} to register {address + 1}")
@@ -74,16 +73,13 @@ def main():
     if not client:
         return
 
-
-
     # Read holding registers (%QW4 - %QW13)
     print("\nReading Holding Registers:")
     read_holding_registers(client, HOLDING_REGISTER_START, HOLDING_REGISTER_COUNT)
 
     # Write to a holding register (%QW4)
     print("\nWriting to Holding Register:")
-    client.write_register(62202, 2)  # Writing value 2 to %MW62200
-
+    write_holding_register(client, 62202, 1)  # Writing value 15 to %MW62202
 
     # Close the connection
     client.close()
